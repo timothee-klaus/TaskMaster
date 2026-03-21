@@ -1,0 +1,22 @@
+Analyzing taskmaster...                                         
+
+   info • The imported package 'provider' isn't a dependency of the importing package • lib/main.dart:2:8 • depend_on_referenced_packages
+warning • Unused import: 'package:taskmaster/views/auth/register_screen.dart' • lib/main.dart:5:8 • unused_import
+   info • Don't invoke 'print' in production code • lib/viewmodels/register_viewmodel.dart:26:5 • avoid_print
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/views/auth/login_screen.dart:28:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/views/auth/login_screen.dart:76:56 • deprecated_member_use
+   info • The imported package 'provider' isn't a dependency of the importing package • lib/views/auth/register_screen.dart:2:8 • depend_on_referenced_packages
+  error • The named parameter 'shadowColor' isn't defined • lib/views/home/home_screen.dart:108:9 • undefined_named_parameter
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/views/home/home_screen.dart:108:46 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/views/home/home_screen.dart:117:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/views/home/home_screen.dart:212:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/views/home/home_screen.dart:226:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/views/home/home_screen.dart:239:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/views/home/home_screen.dart:265:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/views/home/home_screen.dart:291:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/views/home/home_screen.dart:344:33 • deprecated_member_use
+   info • Invalid use of a private type in a public API • lib/views/task/add_task_screen.dart:7:3 • library_private_types_in_public_api
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/views/tasks/create_task_screen.dart:196:63 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/views/tasks/create_task_screen.dart:276:29 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/views/tasks/create_task_screen.dart:338:41 • deprecated_member_use
+
