@@ -48,26 +48,31 @@ const TaskSchema = CollectionSchema(
       type: IsarType.objectList,
       target: r'TaskHistoryItem',
     ),
-    r'priority': PropertySchema(
+    r'isFlexible': PropertySchema(
       id: 6,
+      name: r'isFlexible',
+      type: IsarType.bool,
+    ),
+    r'priority': PropertySchema(
+      id: 7,
       name: r'priority',
       type: IsarType.byte,
       enumMap: _TaskpriorityEnumValueMap,
     ),
     r'status': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'status',
       type: IsarType.byte,
       enumMap: _TaskstatusEnumValueMap,
     ),
     r'subTasks': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'subTasks',
       type: IsarType.objectList,
       target: r'SubTask',
     ),
     r'title': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'title',
       type: IsarType.string,
     )
@@ -151,15 +156,16 @@ void _taskSerialize(
     TaskHistoryItemSchema.serialize,
     object.history,
   );
-  writer.writeByte(offsets[6], object.priority.index);
-  writer.writeByte(offsets[7], object.status.index);
+  writer.writeBool(offsets[6], object.isFlexible);
+  writer.writeByte(offsets[7], object.priority.index);
+  writer.writeByte(offsets[8], object.status.index);
   writer.writeObjectList<SubTask>(
-    offsets[8],
+    offsets[9],
     allOffsets,
     SubTaskSchema.serialize,
     object.subTasks,
   );
-  writer.writeString(offsets[9], object.title);
+  writer.writeString(offsets[10], object.title);
 }
 
 Task _taskDeserialize(
@@ -182,19 +188,20 @@ Task _taskDeserialize(
       ) ??
       [];
   object.id = id;
+  object.isFlexible = reader.readBool(offsets[6]);
   object.priority =
-      _TaskpriorityValueEnumMap[reader.readByteOrNull(offsets[6])] ??
+      _TaskpriorityValueEnumMap[reader.readByteOrNull(offsets[7])] ??
           TaskPriority.low;
-  object.status = _TaskstatusValueEnumMap[reader.readByteOrNull(offsets[7])] ??
+  object.status = _TaskstatusValueEnumMap[reader.readByteOrNull(offsets[8])] ??
       TaskStatus.todo;
   object.subTasks = reader.readObjectList<SubTask>(
-        offsets[8],
+        offsets[9],
         SubTaskSchema.deserialize,
         allOffsets,
         SubTask(),
       ) ??
       [];
-  object.title = reader.readStringOrNull(offsets[9]);
+  object.title = reader.readStringOrNull(offsets[10]);
   return object;
 }
 
@@ -224,12 +231,14 @@ P _taskDeserializeProp<P>(
           ) ??
           []) as P;
     case 6:
+      return (reader.readBool(offset)) as P;
+    case 7:
       return (_TaskpriorityValueEnumMap[reader.readByteOrNull(offset)] ??
           TaskPriority.low) as P;
-    case 7:
+    case 8:
       return (_TaskstatusValueEnumMap[reader.readByteOrNull(offset)] ??
           TaskStatus.todo) as P;
-    case 8:
+    case 9:
       return (reader.readObjectList<SubTask>(
             offset,
             SubTaskSchema.deserialize,
@@ -237,7 +246,7 @@ P _taskDeserializeProp<P>(
             SubTask(),
           ) ??
           []) as P;
-    case 9:
+    case 10:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -987,6 +996,16 @@ extension TaskQueryFilter on QueryBuilder<Task, Task, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Task, Task, QAfterFilterCondition> isFlexibleEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isFlexible',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<Task, Task, QAfterFilterCondition> priorityEqualTo(
       TaskPriority value) {
     return QueryBuilder.apply(this, (query) {
@@ -1389,6 +1408,18 @@ extension TaskQuerySortBy on QueryBuilder<Task, Task, QSortBy> {
     });
   }
 
+  QueryBuilder<Task, Task, QAfterSortBy> sortByIsFlexible() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFlexible', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Task, Task, QAfterSortBy> sortByIsFlexibleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFlexible', Sort.desc);
+    });
+  }
+
   QueryBuilder<Task, Task, QAfterSortBy> sortByPriority() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'priority', Sort.asc);
@@ -1487,6 +1518,18 @@ extension TaskQuerySortThenBy on QueryBuilder<Task, Task, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Task, Task, QAfterSortBy> thenByIsFlexible() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFlexible', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Task, Task, QAfterSortBy> thenByIsFlexibleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFlexible', Sort.desc);
+    });
+  }
+
   QueryBuilder<Task, Task, QAfterSortBy> thenByPriority() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'priority', Sort.asc);
@@ -1556,6 +1599,12 @@ extension TaskQueryWhereDistinct on QueryBuilder<Task, Task, QDistinct> {
     });
   }
 
+  QueryBuilder<Task, Task, QDistinct> distinctByIsFlexible() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isFlexible');
+    });
+  }
+
   QueryBuilder<Task, Task, QDistinct> distinctByPriority() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'priority');
@@ -1617,6 +1666,12 @@ extension TaskQueryProperty on QueryBuilder<Task, Task, QQueryProperty> {
       historyProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'history');
+    });
+  }
+
+  QueryBuilder<Task, bool, QQueryOperations> isFlexibleProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isFlexible');
     });
   }
 

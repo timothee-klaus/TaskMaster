@@ -13,13 +13,23 @@ const SubTaskSchema = Schema(
   name: r'SubTask',
   id: -8959948632899078842,
   properties: {
-    r'isCompleted': PropertySchema(
+    r'durationMinutes': PropertySchema(
       id: 0,
+      name: r'durationMinutes',
+      type: IsarType.long,
+    ),
+    r'isCompleted': PropertySchema(
+      id: 1,
       name: r'isCompleted',
       type: IsarType.bool,
     ),
+    r'startTime': PropertySchema(
+      id: 2,
+      name: r'startTime',
+      type: IsarType.dateTime,
+    ),
     r'title': PropertySchema(
-      id: 1,
+      id: 3,
       name: r'title',
       type: IsarType.string,
     )
@@ -51,8 +61,10 @@ void _subTaskSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeBool(offsets[0], object.isCompleted);
-  writer.writeString(offsets[1], object.title);
+  writer.writeLong(offsets[0], object.durationMinutes);
+  writer.writeBool(offsets[1], object.isCompleted);
+  writer.writeDateTime(offsets[2], object.startTime);
+  writer.writeString(offsets[3], object.title);
 }
 
 SubTask _subTaskDeserialize(
@@ -62,8 +74,10 @@ SubTask _subTaskDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = SubTask();
-  object.isCompleted = reader.readBool(offsets[0]);
-  object.title = reader.readStringOrNull(offsets[1]);
+  object.durationMinutes = reader.readLongOrNull(offsets[0]);
+  object.isCompleted = reader.readBool(offsets[1]);
+  object.startTime = reader.readDateTimeOrNull(offsets[2]);
+  object.title = reader.readStringOrNull(offsets[3]);
   return object;
 }
 
@@ -75,8 +89,12 @@ P _subTaskDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readBool(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 1:
+      return (reader.readBool(offset)) as P;
+    case 2:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 3:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -85,12 +103,153 @@ P _subTaskDeserializeProp<P>(
 
 extension SubTaskQueryFilter
     on QueryBuilder<SubTask, SubTask, QFilterCondition> {
+  QueryBuilder<SubTask, SubTask, QAfterFilterCondition>
+      durationMinutesIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'durationMinutes',
+      ));
+    });
+  }
+
+  QueryBuilder<SubTask, SubTask, QAfterFilterCondition>
+      durationMinutesIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'durationMinutes',
+      ));
+    });
+  }
+
+  QueryBuilder<SubTask, SubTask, QAfterFilterCondition> durationMinutesEqualTo(
+      int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'durationMinutes',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SubTask, SubTask, QAfterFilterCondition>
+      durationMinutesGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'durationMinutes',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SubTask, SubTask, QAfterFilterCondition> durationMinutesLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'durationMinutes',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SubTask, SubTask, QAfterFilterCondition> durationMinutesBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'durationMinutes',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<SubTask, SubTask, QAfterFilterCondition> isCompletedEqualTo(
       bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isCompleted',
         value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SubTask, SubTask, QAfterFilterCondition> startTimeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'startTime',
+      ));
+    });
+  }
+
+  QueryBuilder<SubTask, SubTask, QAfterFilterCondition> startTimeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'startTime',
+      ));
+    });
+  }
+
+  QueryBuilder<SubTask, SubTask, QAfterFilterCondition> startTimeEqualTo(
+      DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'startTime',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SubTask, SubTask, QAfterFilterCondition> startTimeGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'startTime',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SubTask, SubTask, QAfterFilterCondition> startTimeLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'startTime',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SubTask, SubTask, QAfterFilterCondition> startTimeBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'startTime',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }

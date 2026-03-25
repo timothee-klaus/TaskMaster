@@ -1,28 +1,102 @@
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 import 'package:taskmaster/models/models.dart';
 
-/// Service intended to handle Local Push Notifications.
-/// For example, using 'flutter_local_notifications' to schedule task reminders.
+/// Service handled to handle Local Push Notifications.
+/// Uses 'flutter_local_notifications' to schedule task reminders.
 class NotificationService {
+  final FlutterLocalNotificationsPlugin _notificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
   Future<void> initialize() async {
-    // Initialize notification channels (Android) and permissions (iOS)
-    // Example: await flutterLocalNotificationsPlugin.initialize(...);
+    tz.initializeTimeZones();
+
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
+
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS,
+        );
+
+    await _notificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        // Handle notification tap
+      },
+    );
   }
 
   Future<void> scheduleTaskReminder(Task task) async {
     if (task.dueDate == null) return;
 
-    // Calculate reminder time (e.g., 1 hour before)
-    final reminderTime = task.dueDate!.subtract(const Duration(hours: 1));
+    // Schedule 10 minutes before
+    final scheduledDate = task.dueDate!.subtract(const Duration(minutes: 10));
 
-    // Prevent scheduling past reminders
-    if (reminderTime.isBefore(DateTime.now())) return;
+    if (scheduledDate.isBefore(DateTime.now())) return;
 
-    // TODO: Schedule the actual OS notification
-    print('Scheduled reminder for task: ${task.title} at $reminderTime');
+    await _notificationsPlugin.zonedSchedule(
+      task.id,
+      'Rappel de tâche',
+      task.title ?? 'Sans titre',
+      tz.TZDateTime.from(scheduledDate, tz.local),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'taskmaster_reminders',
+          'Rappels TaskMaster',
+          channelDescription: 'Notifications pour les tâches à venir',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
   }
 
-  Future<void> cancelReminder(int taskId) async {
-    // TODO: Cancel OS notification by ID
-    print('Cancelled reminder for task ID: $taskId');
+  Future<void> scheduleSubtaskReminder(SubTask st, int id) async {
+    if (st.startTime == null) return;
+
+    final scheduledDate = st.startTime!;
+    if (scheduledDate.isBefore(DateTime.now())) return;
+
+    await _notificationsPlugin.zonedSchedule(
+      id,
+      'Sous-tâche imminente',
+      st.title ?? 'Sans titre',
+      tz.TZDateTime.from(scheduledDate, tz.local),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'taskmaster_subtasks',
+          'Sous-tâches TaskMaster',
+          channelDescription: 'Notifications pour les sous-tâches',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+
+  Future<void> cancelReminder(int id) async {
+    await _notificationsPlugin.cancel(id);
+  }
+
+  Future<void> cancelAll() async {
+    await _notificationsPlugin.cancelAll();
   }
 }

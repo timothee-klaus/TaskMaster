@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 /// Un wrapper générique de Dio pour toute l'application.
 /// Si vous ajoutez d'autres APIs externes plus tard, ils réutiliseront ce client.
@@ -19,7 +20,17 @@ class DioClient {
       ),
     );
 
-    // Optionnel: Interceptor pour debugger les requêtes HTTP dans la console pendant le dev
-    // dio.interceptors.add(LogInterceptor(responseBody: true, requestBody: true));
+    // Logs sublimes dans la console pour debugger le trafic API IA
+    dio.interceptors.add(
+      PrettyDioLogger(
+        requestHeader: true,
+        requestBody: true,
+        responseBody: true,
+        responseHeader: false,
+        error: true,
+        compact: true,
+        maxWidth: 90,
+      ),
+    );
   }
 }

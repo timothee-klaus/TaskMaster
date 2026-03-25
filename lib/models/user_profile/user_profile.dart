@@ -15,4 +15,5 @@ class UserProfile {
   AppTheme themePreference = AppTheme.light;
 
   bool googleCalendarIntegrated = false;
+  bool googleSyncEnabled = true;
 }

@@ -6,7 +6,7 @@ class AiService {
   final DioClient _dioClient;
 
   // Modèle gratuit extrêmement rapide chez Groq, parfait pour la génération json
-  final String _model = 'llama3-8b-8192';
+  final String _model = 'llama-3.1-8b-instant';
 
   AiService(this._dioClient);
 

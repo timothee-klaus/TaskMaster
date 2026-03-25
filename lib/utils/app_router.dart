@@ -9,6 +9,7 @@ import 'package:taskmaster/views/tasks/task_details_screen.dart';
 import 'package:taskmaster/views/agenda/agenda_screen.dart';
 import 'package:taskmaster/views/settings/settings_screen.dart';
 import 'package:taskmaster/views/main_layout.dart';
+import 'package:taskmaster/models/models.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey =
@@ -26,12 +27,18 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/create-task',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const CreateTaskScreen(),
+      builder: (context, state) {
+        final taskToEdit = state.extra as Task?;
+        return CreateTaskScreen(taskToEdit: taskToEdit);
+      },
     ),
     GoRoute(
       path: '/task-details',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const TaskDetailsScreen(),
+      builder: (context, state) {
+        final task = state.extra as Task;
+        return TaskDetailsScreen(task: task);
+      },
     ),
     ShellRoute(
       navigatorKey: _shellNavigatorKey,

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:taskmaster/viewmodels/settings_viewmodel.dart';
+import 'package:taskmaster/viewmodels/task_viewmodel.dart';
+import 'package:taskmaster/utils/app_colors.dart';
 
 class MainLayout extends StatelessWidget {
   final Widget child;
@@ -7,32 +11,47 @@ class MainLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settingsVM = context.watch<SettingsViewModel>();
+    final taskVM = context.watch<TaskViewModel>();
+    final isDarkMode = settingsVM.isDarkMode;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.getBackground(isDarkMode),
       body: child,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/create-task'),
-        backgroundColor: const Color(0xFFFF5A4A),
-        elevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
-      ),
+      floatingActionButton: taskVM.isAiBarActive
+          ? null
+          : FloatingActionButton(
+              onPressed: () => context.push('/create-task'),
+              backgroundColor: AppColors.primary,
+              elevation: 6,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: const Icon(Icons.add, color: Colors.white, size: 28),
+            ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
+          boxShadow: isDarkMode
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, -5),
+                  ),
+                ],
+          border: isDarkMode
+              ? Border(top: BorderSide(color: AppColors.darkBorder))
+              : null,
         ),
         child: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFFFF5A4A),
-          unselectedItemColor: const Color(0xFF98A2B3),
+          backgroundColor: AppColors.getSurface(isDarkMode),
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: AppColors.getTextSecondary(
+            isDarkMode,
+          ).withOpacity(0.5),
           selectedFontSize: 12,
           unselectedFontSize: 12,
           selectedLabelStyle: const TextStyle(

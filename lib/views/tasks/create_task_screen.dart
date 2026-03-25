@@ -1,40 +1,141 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:taskmaster/models/models.dart';
+import 'package:taskmaster/viewmodels/task_viewmodel.dart';
+import 'package:taskmaster/viewmodels/settings_viewmodel.dart';
+import 'package:taskmaster/utils/app_colors.dart';
+import 'package:taskmaster/views/tasks/widgets/create_task_widgets.dart';
 
 class CreateTaskScreen extends StatefulWidget {
-  const CreateTaskScreen({super.key});
+  final Task? taskToEdit;
+  const CreateTaskScreen({super.key, this.taskToEdit});
 
   @override
   State<CreateTaskScreen> createState() => _CreateTaskScreenState();
 }
 
 class _CreateTaskScreenState extends State<CreateTaskScreen> {
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descController = TextEditingController();
+
   bool _autoPlan = true;
-  double _duration = 2.5;
+  bool _isFlexible = false;
+  double _duration = 2.5; // in hours
+  TaskPriority _priority = TaskPriority.medium;
+  DateTime _dueDate = DateTime.now().add(const Duration(days: 1));
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.taskToEdit != null) {
+      final t = widget.taskToEdit!;
+      _titleController.text = t.title ?? '';
+      _descController.text = t.description ?? '';
+      _autoPlan = false;
+      _isFlexible = t.isFlexible;
+      _duration = (t.estimatedDurationMinutes / 60.0);
+      _priority = t.priority;
+      if (t.dueDate != null) {
+        _dueDate = t.dueDate!;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
+
+  void _saveTask() {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez entrer un titre.')),
+      );
+      return;
+    }
+
+    final taskVM = context.read<TaskViewModel>();
+
+    final newTask = widget.taskToEdit ?? Task();
+    newTask
+      ..title = _titleController.text.trim()
+      ..description = _descController.text.trim()
+      ..dueDate = _dueDate
+      ..priority = _priority
+      ..status = widget.taskToEdit?.status ?? TaskStatus.todo
+      ..estimatedDurationMinutes = (_duration * 60).toInt()
+      ..autoSchedulingEnabled = _autoPlan
+      ..isFlexible = _isFlexible;
+
+    // Save task instantaneously
+    taskVM.addTask(newTask).then((_) {
+      // Autogenerate AI Subtasks if requested in background
+      if (_autoPlan) {
+        taskVM.generateSmartSubtasks(newTask);
+      }
+    });
+
+    context.pop();
+  }
+
+  Future<void> _pickDateTime() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _dueDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2030),
+    );
+    if (date != null && mounted) {
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_dueDate),
+      );
+      if (time != null) {
+        setState(() {
+          _dueDate = DateTime(
+            date.year,
+            date.month,
+            date.day,
+            time.hour,
+            time.minute,
+          );
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final settingsVM = context.watch<SettingsViewModel>();
+    final isDarkMode = settingsVM.isDarkMode;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB), // Very light grey background
+      backgroundColor: AppColors.getBackground(isDarkMode),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.getBackground(isDarkMode),
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF101828)),
+          icon: Icon(
+            Icons.arrow_back,
+            color: AppColors.getTextPrimary(isDarkMode),
+          ),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
-          'Créer une tâche',
+        title: Text(
+          widget.taskToEdit != null ? 'Modifier la tâche' : 'Créer une tâche',
           style: TextStyle(
-            color: Color(0xFF101828),
+            color: AppColors.getTextPrimary(isDarkMode),
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Color(0xFFFF5A4A)),
+            icon: const Icon(Icons.more_vert, color: AppColors.primary),
             onPressed: () {},
           ),
         ],
@@ -48,239 +149,88 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionTitle('INFORMATIONS GÉNÉRALES'),
+                    SectionTitle(
+                      'INFORMATIONS GÉNÉRALES',
+                      isDarkMode: isDarkMode,
+                    ),
                     const SizedBox(height: 16),
-                    _buildLabel('Titre de la tâche'),
+                    FormLabel('Titre de la tâche', isDarkMode: isDarkMode),
                     const SizedBox(height: 8),
-                    _buildTextField('Ex: Finaliser le rapport trimestriel'),
+                    CustomTextField(
+                      'Ex: Finaliser le rapport trimestriel',
+                      controller: _titleController,
+                      isDarkMode: isDarkMode,
+                    ),
                     const SizedBox(height: 24),
-                    _buildLabel('Description'),
+                    FormLabel('Description', isDarkMode: isDarkMode),
                     const SizedBox(height: 8),
-                    _buildTextField(
-                      'Ajouter des détails sur les objectifs, les\nétapes...',
+                    CustomTextField(
+                      'Ajouter des détails sur les objectifs...',
                       maxLines: 4,
+                      controller: _descController,
+                      isDarkMode: isDarkMode,
                     ),
                     const SizedBox(height: 32),
 
-                    _buildSectionTitle('PLANIFICATION'),
+                    SectionTitle('PLANIFICATION', isDarkMode: isDarkMode),
                     const SizedBox(height: 16),
 
-                    // Echéance Card
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFDECEE),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: const Icon(
-                              Icons.calendar_today_outlined,
-                              color: Color(0xFFFF5A4A),
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text(
-                                  'Échéance',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: Color(0xFF101828),
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'Définir une date\nlimite',
-                                  style: TextStyle(
-                                    color: Color(0xFF667085),
-                                    fontSize: 13,
-                                    height: 1.2,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF2F4F7), // Light grey
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'Sélectionner',
-                              style: TextStyle(
-                                color: Color(0xFF101828),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    DateTimePickerBtn(
+                      dueDate: _dueDate,
+                      onTap: _pickDateTime,
+                      isDarkMode: isDarkMode,
                     ),
                     const SizedBox(height: 24),
 
-                    _buildLabel('Priorité'),
+                    FormLabel('Priorité', isDarkMode: isDarkMode),
                     const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          Text(
-                            'Sélectionner la priorité',
-                            style: TextStyle(
-                              color: Color(0xFF475467),
-                              fontSize: 15,
-                            ),
-                          ),
-                          Icon(
-                            Icons.keyboard_arrow_down,
-                            color: Color(0xFF667085),
-                          ),
-                        ],
-                      ),
+                    PriorityDropdown(
+                      value: _priority,
+                      onChanged: (val) {
+                        if (val != null) setState(() => _priority = val);
+                      },
+                      isDarkMode: isDarkMode,
                     ),
                     const SizedBox(height: 32),
 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
+                      children: [
                         Text(
                           'Durée estimée',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
-                            color: Color(0xFF101828),
+                            color: AppColors.getTextPrimary(isDarkMode),
                           ),
                         ),
                         Text(
-                          '2h 30m',
-                          style: TextStyle(
+                          '${_duration.toStringAsFixed(1).replaceAll('.0', '')} h',
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
-                            color: Color(0xFFFF5A4A),
+                            color: AppColors.primary,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        trackHeight: 4,
-                        activeTrackColor: const Color(0xFFFF5A4A),
-                        inactiveTrackColor: Colors.grey.shade200,
-                        thumbColor: const Color(0xFFFF5A4A),
-                        overlayColor: const Color(0xFFFF5A4A).withOpacity(0.2),
-                        thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 8,
-                        ),
-                        trackShape: const RoundedRectSliderTrackShape(),
-                      ),
-                      child: Slider(
-                        value: _duration,
-                        min: 0,
-                        max: 8,
-                        onChanged: (val) {
-                          setState(() => _duration = val);
-                        },
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          Text(
-                            '15m',
-                            style: TextStyle(
-                              color: Color(0xFF98A2B3),
-                              fontSize: 12,
-                            ),
-                          ),
-                          Text(
-                            '8h+',
-                            style: TextStyle(
-                              color: Color(0xFF98A2B3),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
+                    DurationSlider(
+                      value: _duration,
+                      onChanged: (val) => setState(() => _duration = val),
                     ),
                     const SizedBox(height: 32),
 
-                    // Auto plan
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFDECEE),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFFFD4CE)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.auto_awesome,
-                            color: Color(0xFFFF5A4A),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text(
-                                  'Planification auto',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                    color: Color(0xFF101828),
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'Optimiser selon mon agenda',
-                                  style: TextStyle(
-                                    color: Color(0xFF667085),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Switch(
-                            value: _autoPlan,
-                            onChanged: (val) => setState(() => _autoPlan = val),
-                            activeColor: Colors.white,
-                            activeTrackColor: const Color(0xFFFF5A4A),
-                            inactiveThumbColor: Colors.white,
-                            inactiveTrackColor: Colors.grey.shade300,
-                          ),
-                        ],
-                      ),
+                    AiAutoPlanSwitch(
+                      value: _autoPlan,
+                      onChanged: (val) => setState(() => _autoPlan = val),
+                      isDarkMode: isDarkMode,
+                    ),
+                    const SizedBox(height: 16),
+                    FlexibleTimeSwitch(
+                      value: _isFlexible,
+                      onChanged: (val) => setState(() => _isFlexible = val),
+                      isDarkMode: isDarkMode,
                     ),
                     const SizedBox(height: 32),
 
@@ -293,12 +243,14 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                             left: 0,
                             child: _buildAvatar(
                               'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80',
+                              isDarkMode,
                             ),
                           ),
                           Positioned(
                             left: 24, // overlapping
                             child: _buildAvatar(
                               'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80',
+                              isDarkMode,
                             ),
                           ),
                           Positioned(
@@ -307,17 +259,19 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                               width: 32,
                               height: 32,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF2F4F7),
+                                color: isDarkMode
+                                    ? AppColors.darkSurface
+                                    : const Color(0xFFF2F4F7),
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Colors.white,
+                                  color: AppColors.getSurface(isDarkMode),
                                   width: 2,
                                 ),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.add,
                                 size: 16,
-                                color: Color(0xFF475467),
+                                color: AppColors.getTextSecondary(isDarkMode),
                               ),
                             ),
                           ),
@@ -328,25 +282,28 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 ),
               ),
             ),
-
-            // Bottom Sticky Button
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
+                color: AppColors.getSurface(isDarkMode),
+                boxShadow: isDarkMode
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, -5),
+                        ),
+                      ],
+                border: isDarkMode
+                    ? Border(top: BorderSide(color: AppColors.darkBorder))
+                    : null,
               ),
               child: SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () => context.pop(),
+                  onPressed: _saveTask,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFF5A4A),
                     elevation: 0,
@@ -354,9 +311,11 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                       borderRadius: BorderRadius.circular(28),
                     ),
                   ),
-                  child: const Text(
-                    'Enregistrer la tâche',
-                    style: TextStyle(
+                  child: Text(
+                    widget.taskToEdit != null
+                        ? 'Enregistrer'
+                        : 'Créer l\'objectif',
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -371,61 +330,13 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.bold,
-        color: Color(0xFF475467),
-        letterSpacing: 1.2,
-      ),
-    );
-  }
-
-  Widget _buildLabel(String label) {
-    return Text(
-      label,
-      style: const TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.bold,
-        color: Color(0xFF101828),
-      ),
-    );
-  }
-
-  Widget _buildTextField(String hint, {int maxLines = 1}) {
-    return TextField(
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Color(0xFF98A2B3), fontSize: 15),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.all(16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFFF5A4A), width: 1.5),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAvatar(String url) {
+  Widget _buildAvatar(String url, bool isDarkMode) {
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
+        border: Border.all(color: AppColors.getSurface(isDarkMode), width: 2),
       ),
-      child: CircleAvatar(radius: 14, backgroundImage: NetworkImage(url)),
+      child: CircleAvatar(radius: 16, backgroundImage: NetworkImage(url)),
     );
   }
 }

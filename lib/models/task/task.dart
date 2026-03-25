@@ -22,6 +22,7 @@ class Task {
 
   int estimatedDurationMinutes = 60;
   bool autoSchedulingEnabled = false;
+  bool isFlexible = false;
 
   List<SubTask> subTasks = [];
   List<String> attachments = [];

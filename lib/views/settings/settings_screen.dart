@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:taskmaster/viewmodels/settings_viewmodel.dart';
+import 'package:taskmaster/viewmodels/auth_viewmodel.dart';
+import 'package:taskmaster/utils/app_colors.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -8,13 +13,17 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _isDarkMode = false;
-  bool _isAutoSync = true;
-
   @override
   Widget build(BuildContext context) {
+    final settingsVM = context.watch<SettingsViewModel>();
+    final authVM = context.read<AuthViewModel>();
+    final profile = settingsVM.profile;
+
+    final isDarkMode = settingsVM.isDarkMode;
+    final isAutoSync = profile?.googleSyncEnabled ?? true;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.getBackground(isDarkMode),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
@@ -25,22 +34,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Paramètres',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF101828),
+                      color: AppColors.getTextPrimary(isDarkMode),
                       letterSpacing: -0.5,
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF2F4F7),
+                    decoration: BoxDecoration(
+                      color: isDarkMode
+                          ? AppColors.darkSurface
+                          : AppColors.lightDivider,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.search, color: Color(0xFF475467)),
+                    child: Icon(
+                      Icons.search,
+                      color: AppColors.getTextSecondary(isDarkMode),
+                    ),
                   ),
                 ],
               ),
@@ -50,9 +64,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF1F2), // Light red/pink
+                  color: isDarkMode
+                      ? AppColors.darkSurface
+                      : const Color(0xFFFFF1F2),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFFFFE4E6)),
+                  border: Border.all(
+                    color: isDarkMode
+                        ? AppColors.darkBorder
+                        : const Color(0xFFFFE4E6),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -61,32 +81,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
-                      child: const CircleAvatar(
+                      child: CircleAvatar(
                         radius: 28,
-                        backgroundImage: NetworkImage(
-                          'https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80',
-                        ), // Professional looking man
+                        backgroundImage: profile?.avatarUrl != null
+                            ? NetworkImage(profile!.avatarUrl!)
+                            : const NetworkImage(
+                                'https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80',
+                              ),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
-                            'Jean Dupont',
+                            profile?.fullName ?? 'Utilisateur Inconnu',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF101828),
+                              color: AppColors.getTextPrimary(isDarkMode),
                             ),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
-                            'jean.dupont@taskmaster.io',
+                            profile?.email ?? 'Aucune adresse',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Color(0xFF667085),
+                              color: AppColors.getTextSecondary(isDarkMode),
                             ),
                           ),
                         ],
@@ -94,7 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const Icon(
                       Icons.edit_outlined,
-                      color: Color(0xFFFF5A4A),
+                      color: AppColors.primary,
                       size: 24,
                     ),
                   ],
@@ -102,113 +124,146 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 48),
 
-              _buildSectionTitle('APPARENCE'),
+              _buildSectionTitle('APPARENCE', isDarkMode),
               _buildSwitchTile(
                 icon: Icons.dark_mode_outlined,
                 title: 'Thème Sombre',
-                value: _isDarkMode,
-                onChanged: (val) => setState(() => _isDarkMode = val),
+                value: isDarkMode,
+                onChanged: (val) {
+                  settingsVM.toggleTheme(val);
+                },
+                isDarkMode: isDarkMode,
               ),
 
               const SizedBox(height: 16),
-              _buildSectionTitle('INTÉGRATIONS'),
+              _buildSectionTitle('INTÉGRATIONS', isDarkMode),
               _buildListTile(
                 icon: Icons.calendar_today_outlined,
                 title: 'Calendrier Google',
+                onTap: () {
+                  final isLinked = profile?.googleCalendarIntegrated ?? false;
+                  settingsVM.toggleGoogleCalendar(!isLinked);
+                },
+                isDarkMode: isDarkMode,
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     Text(
-                      'Connecté',
+                      profile?.googleCalendarIntegrated == true
+                          ? 'Connecté'
+                          : 'Déconnecté',
                       style: TextStyle(
-                        color: Color(0xFF12B76A),
+                        color: profile?.googleCalendarIntegrated == true
+                            ? AppColors.success
+                            : AppColors.getTextSecondary(isDarkMode),
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
                     ),
-                    SizedBox(width: 4),
-                    Icon(Icons.chevron_right, color: Color(0xFF98A2B3)),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.chevron_right,
+                      color: AppColors.getTextSecondary(
+                        isDarkMode,
+                      ).withOpacity(0.5),
+                    ),
                   ],
                 ),
               ),
               _buildSwitchTile(
                 icon: Icons.sync,
                 title: 'Synchronisation auto',
-                value: _isAutoSync,
-                onChanged: (val) => setState(() => _isAutoSync = val),
+                value: isAutoSync,
+                onChanged: (val) => settingsVM.toggleGoogleSync(val),
+                isDarkMode: isDarkMode,
               ),
 
               const SizedBox(height: 16),
-              _buildSectionTitle('PRÉFÉRENCES'),
+              _buildSectionTitle('PRÉFÉRENCES', isDarkMode),
               _buildListTile(
                 icon: Icons.notifications_none,
                 title: 'Notifications',
+                isDarkMode: isDarkMode,
               ),
               _buildListTile(
                 icon: Icons.lock_outline,
                 title: 'Confidentialité',
+                isDarkMode: isDarkMode,
               ),
               _buildListTile(
                 icon: Icons.language,
                 title: 'Langue',
+                isDarkMode: isDarkMode,
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     Text(
                       'Français',
                       style: TextStyle(
-                        color: Color(0xFF667085),
+                        color: AppColors.getTextSecondary(isDarkMode),
                         fontWeight: FontWeight.w500,
                         fontSize: 14,
                       ),
                     ),
-                    SizedBox(width: 4),
-                    Icon(Icons.chevron_right, color: Color(0xFF98A2B3)),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.chevron_right,
+                      color: AppColors.getTextSecondary(
+                        isDarkMode,
+                      ).withOpacity(0.5),
+                    ),
                   ],
                 ),
               ),
 
               const SizedBox(height: 48),
 
-              // Logout Button
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: () async {
+                    await authVM.logout();
+                    if (context.mounted) {
+                      context.go('/login');
+                    }
+                  },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFF1F2), // very light red
+                    backgroundColor: isDarkMode
+                        ? AppColors.darkSurface
+                        : const Color(0xFFFFF1F2),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),
+                      side: isDarkMode
+                          ? const BorderSide(color: AppColors.error, width: 1)
+                          : BorderSide.none,
                     ),
                   ),
-                  icon: const Icon(Icons.logout, color: Color(0xFFE11D48)),
+                  icon: const Icon(Icons.logout, color: AppColors.error),
                   label: const Text(
                     'Déconnexion',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFFE11D48),
+                      color: AppColors.error,
                     ),
                   ),
                 ),
               ),
 
               const SizedBox(height: 32),
-
-              // Footer
               Center(
-                child: const Text(
+                child: Text(
                   'TaskMaster v2.4.0 • Fabriqué avec passion',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF98A2B3),
+                    color: AppColors.getTextSecondary(isDarkMode),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
-              const SizedBox(height: 80), // bottom nav clearance if required
+              const SizedBox(height: 80),
             ],
           ),
         ),
@@ -216,15 +271,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, bool isDarkMode) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 24.0),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.bold,
-          color: Color(0xFF98A2B3),
+          color: AppColors.getTextSecondary(isDarkMode).withOpacity(0.7),
           letterSpacing: 1.2,
         ),
       ),
@@ -234,29 +289,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildListTile({
     required IconData icon,
     required String title,
+    required bool isDarkMode,
     Widget? trailing,
+    VoidCallback? onTap,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 32.0),
-      child: Row(
-        children: [
-          Icon(icon, color: const Color(0xFFFF5A4A), size: 24),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF101828),
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 32.0),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.primary, size: 24),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.getTextPrimary(isDarkMode),
+                ),
               ),
             ),
-          ),
-          if (trailing != null)
-            trailing
-          else
-            const Icon(Icons.chevron_right, color: Color(0xFF98A2B3)),
-        ],
+            if (trailing != null)
+              trailing
+            else
+              Icon(
+                Icons.chevron_right,
+                color: AppColors.getTextSecondary(isDarkMode).withOpacity(0.5),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -266,20 +329,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String title,
     required bool value,
     required ValueChanged<bool> onChanged,
+    required bool isDarkMode,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 32.0),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFFFF5A4A), size: 24),
+          Icon(icon, color: AppColors.primary, size: 24),
           const SizedBox(width: 16),
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF101828),
+                color: AppColors.getTextPrimary(isDarkMode),
               ),
             ),
           ),
@@ -287,9 +351,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: value,
             onChanged: onChanged,
             activeColor: Colors.white,
-            activeTrackColor: const Color(0xFFFF5A4A),
-            inactiveThumbColor: Colors.white,
-            inactiveTrackColor: Colors.grey.shade300,
+            activeTrackColor: AppColors.primary,
+            inactiveThumbColor: isDarkMode
+                ? Colors.grey.shade400
+                : Colors.white,
+            inactiveTrackColor: isDarkMode
+                ? Colors.grey.shade800
+                : Colors.grey.shade300,
           ),
         ],
       ),

@@ -37,8 +37,13 @@ const UserProfileSchema = CollectionSchema(
       name: r'googleCalendarIntegrated',
       type: IsarType.bool,
     ),
-    r'themePreference': PropertySchema(
+    r'googleSyncEnabled': PropertySchema(
       id: 4,
+      name: r'googleSyncEnabled',
+      type: IsarType.bool,
+    ),
+    r'themePreference': PropertySchema(
+      id: 5,
       name: r'themePreference',
       type: IsarType.byte,
       enumMap: _UserProfilethemePreferenceEnumValueMap,
@@ -95,7 +100,8 @@ void _userProfileSerialize(
   writer.writeString(offsets[1], object.email);
   writer.writeString(offsets[2], object.fullName);
   writer.writeBool(offsets[3], object.googleCalendarIntegrated);
-  writer.writeByte(offsets[4], object.themePreference.index);
+  writer.writeBool(offsets[4], object.googleSyncEnabled);
+  writer.writeByte(offsets[5], object.themePreference.index);
 }
 
 UserProfile _userProfileDeserialize(
@@ -109,9 +115,10 @@ UserProfile _userProfileDeserialize(
   object.email = reader.readStringOrNull(offsets[1]);
   object.fullName = reader.readStringOrNull(offsets[2]);
   object.googleCalendarIntegrated = reader.readBool(offsets[3]);
+  object.googleSyncEnabled = reader.readBool(offsets[4]);
   object.id = id;
   object.themePreference = _UserProfilethemePreferenceValueEnumMap[
-          reader.readByteOrNull(offsets[4])] ??
+          reader.readByteOrNull(offsets[5])] ??
       AppTheme.light;
   return object;
 }
@@ -132,6 +139,8 @@ P _userProfileDeserializeProp<P>(
     case 3:
       return (reader.readBool(offset)) as P;
     case 4:
+      return (reader.readBool(offset)) as P;
+    case 5:
       return (_UserProfilethemePreferenceValueEnumMap[
               reader.readByteOrNull(offset)] ??
           AppTheme.light) as P;
@@ -708,6 +717,16 @@ extension UserProfileQueryFilter
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      googleSyncEnabledEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'googleSyncEnabled',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition> idEqualTo(
       Id value) {
     return QueryBuilder.apply(this, (query) {
@@ -876,6 +895,20 @@ extension UserProfileQuerySortBy
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy>
+      sortByGoogleSyncEnabled() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'googleSyncEnabled', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy>
+      sortByGoogleSyncEnabledDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'googleSyncEnabled', Sort.desc);
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByThemePreference() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'themePreference', Sort.asc);
@@ -942,6 +975,20 @@ extension UserProfileQuerySortThenBy
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy>
+      thenByGoogleSyncEnabled() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'googleSyncEnabled', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy>
+      thenByGoogleSyncEnabledDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'googleSyncEnabled', Sort.desc);
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -999,6 +1046,13 @@ extension UserProfileQueryWhereDistinct
   }
 
   QueryBuilder<UserProfile, UserProfile, QDistinct>
+      distinctByGoogleSyncEnabled() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'googleSyncEnabled');
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QDistinct>
       distinctByThemePreference() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'themePreference');
@@ -1036,6 +1090,13 @@ extension UserProfileQueryProperty
       googleCalendarIntegratedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'googleCalendarIntegrated');
+    });
+  }
+
+  QueryBuilder<UserProfile, bool, QQueryOperations>
+      googleSyncEnabledProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'googleSyncEnabled');
     });
   }
 

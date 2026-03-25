@@ -46,6 +46,27 @@ class AuthRepository {
     }
   }
 
+  Future<bool> signInWithGoogle() async {
+    try {
+      final response = await _authService.signInWithGoogle();
+      if (response.containsKey('token')) {
+        _isAuthenticated = true;
+
+        final profile = await _userRepository.getUserProfile() ?? UserProfile();
+        profile.fullName = response['name'] ?? 'Utilisateur Google';
+        profile.email = response['email'] ?? '';
+        profile.avatarUrl = response['photoUrl'];
+        profile.googleCalendarIntegrated = true;
+
+        await _userRepository.saveUserProfile(profile);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<void> logout() async {
     // Simulate clearing secure storage and session
     await Future.delayed(const Duration(milliseconds: 300));

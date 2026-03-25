@@ -15,6 +15,7 @@ class AuthViewModel extends ChangeNotifier {
 
   Future<bool> login(String email, String password) async {
     _setLoading(true);
+    _errorMessage = null;
     try {
       final success = await _authRepository.login(email, password);
       _setLoading(false);
@@ -26,8 +27,23 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
+  Future<bool> signInWithGoogle() async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      final success = await _authRepository.signInWithGoogle();
+      _setLoading(false);
+      return success;
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      _setLoading(false);
+      return false;
+    }
+  }
+
   Future<bool> register(String name, String email, String password) async {
     _setLoading(true);
+    _errorMessage = null;
     try {
       final success = await _authRepository.register(name, email, password);
       _setLoading(false);
